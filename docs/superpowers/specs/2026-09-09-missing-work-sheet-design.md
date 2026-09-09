@@ -121,8 +121,9 @@ Menu items: **Send digests now** (respects dry_run) and **Install Tuesday trigge
 
 1. Read Config, Roster, Current.
 2. Group Current by Student ID. For each group with a Roster row: build one email
-   listing items grouped by course, each line `Assignment — due {Due date} — {n}
-   days missing` where n = today − First seen. Send to Email column value.
+   listing items grouped by course, each line `Assignment — due {Due date} — missing {n}
+   days` (or "newly listed" when First seen is blank, "new this week" on the day it first
+   appears) where n = today − First seen. Send to Email column value.
 3. Group Roster rows by Advisor email. For each advisor with at least one advisee
    present in Current: one email, sections per advisee, same line format.
 4. Students in Current with no Roster row, or a Roster row with blank advisor email:

@@ -54,12 +54,17 @@ function setupSheet() {
   current.setColumnWidth(5, 260);
   current.setColumnWidth(6, 320);
 
+  // Warn anyone who hand-edits Current; every import rewrites it.
+  var protections = current.getProtections(SpreadsheetApp.ProtectionType.SHEET);
+  if (!protections.length) current.protect().setDescription('Rewritten by every import').setWarningOnly(true);
+
   // Remove the default "Sheet1" if it is empty and we created our own tabs.
   var s1 = ss.getSheetByName('Sheet1');
   if (s1 && s1.getLastRow() === 0 && ss.getSheets().length > 1) ss.deleteSheet(s1);
 
   highlightRosterGaps_();
-  SpreadsheetApp.getUi().alert('Sheet is set up. Fill the Roster tab (Student ID, Advisor name, Advisor email), then use Missing Work → Import CSV.');
+  var ui = getUiOrNull_();
+  if (ui) ui.alert('Sheet is set up. Fill the Roster tab (Student ID, Advisor name, Advisor email), then use Missing Work → Import CSV.');
 }
 
 // Light-yellow rows in Current whose Student ID is absent from Roster.
@@ -68,6 +73,7 @@ function highlightRosterGaps_() {
   var current = ss.getSheetByName(TAB.CURRENT);
   if (!current) return;
   var n = current.getMaxRows();
+  if (n < 2) return;
   var range = current.getRange(2, 1, Math.max(n - 1, 1), CURRENT_HEADERS.length);
   var rule = SpreadsheetApp.newConditionalFormatRule()
     .whenFormulaSatisfied('=AND($A2<>"", ISNA(MATCH($A2, INDIRECT("' + TAB.ROSTER + '!A:A"), 0)))')

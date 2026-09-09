@@ -35,8 +35,11 @@ Time: about 20 minutes, once.
 2. Delete the three fake rows from Roster. Fill Advisor name and Advisor email for every real
    student (Student ID and name are already there).
 3. **Missing Work → Install Tuesday 7am trigger**.
-4. In the Apps Script editor, open **Project Settings** (gear icon) and confirm **Time zone** is
-   `(GMT-05:00) Eastern Time - New York`. The trigger fires between 7:00 and 8:00 in that zone.
+   Only one person should install the trigger. If someone else installs it too, students get two emails.
+4. Confirm the time zone in two places: in the Apps Script editor, open **Project Settings** (gear
+   icon) and confirm **Time zone** is `(GMT-05:00) Eastern Time - New York`; and in the spreadsheet
+   itself, **File → Settings → Time zone**, confirm the same. The trigger fires between 7:00 and
+   8:00 in the project's zone.
 5. Set Config → `dry_run` to `FALSE`.
 6. Share the sheet with anyone who should see it (Viewer is enough).
 
@@ -48,6 +51,14 @@ Time: about 20 minutes, once.
   student could not be matched.
 - The Log tab shows every import and send with counts.
 
+## If something goes wrong
+- **Import says missing columns** → you picked the wrong file or an export from before the
+  dashboard added the ID columns. Download a fresh one.
+- **I want to stop the Tuesday emails for good** → Extensions → Apps Script → Triggers (clock
+  icon) → delete the trigger. Setting `dry_run` to `TRUE` only pauses them.
+- **Send digests now asks me to confirm** → that prompt appears whenever `dry_run` is `FALSE`; it
+  tells you how many students will be emailed.
+
 ## Things to know
 - The import must be a complete export (all students, all courses). If a file would remove
   more than half the current rows, the import asks you to confirm first.
@@ -57,3 +68,7 @@ Time: about 20 minutes, once.
   and `cc` to copy someone on every live email.
 - To pause emails, set `dry_run` back to `TRUE`; the trigger keeps running but everything
   goes to you.
+- Don't type in the Current tab; every import rewrites it, and you'll see a warning if you try.
+- Any conditional formatting you add to Current is reset on import.
+- Also check the spreadsheet's own time zone (File → Settings → Time zone) matches Eastern, or
+  "First seen" dates can shift by a day.

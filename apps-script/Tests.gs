@@ -254,3 +254,66 @@ function test_findRosterGaps() {
     { studentId: '4', student: 'Di Orphan', reason: 'not in Roster' }
   ], 'gaps found once per student, sorted by name');
 }
+
+function test_ageLabel_blank_firstSeen() {
+  var item = { assignment: 'HW', dueDate: '2026-09-04', firstSeen: '' };
+  assertEq(itemLine_(item, '2026-09-09'), '  - HW — due Sep 4 — newly listed', 'blank first seen is labelled, not NaN');
+}
+
+function test_reconcile_blank_firstSeen_self_heals() {
+  var imp = parseImportRows(csvFixture_()).rows;
+  var current = [{ studentId: '1', student: 'Ada Test', email: '', grade: '9', course: 'Algebra I',
+    assignment: 'Homework 5', dueDate: '2026-09-04', points: '10', courseId: '100', assignmentId: '1001',
+    firstSeen: '', lastSeen: '2026-09-05' }];
+  var out = reconcile(current, imp, '2026-09-09');
+  var row = out.rows.filter(function (r) { return rowKey(r) === '1|1001'; })[0];
+  assertEq(row.firstSeen, '2026-09-09', 'blank first seen becomes today');
+}
+
+function test_normalizeConfig_dry_run_fails_closed() {
+  function dry(v) { return normalizeConfig_({ dry_run: v, delete_guard_fraction: '0.5' }).dry_run; }
+  assertEq(dry('TRUE'), true, 'TRUE');
+  assertEq(dry(true), true, 'checkbox true');
+  assertEq(dry(''), true, 'blank stays dry');
+  assertEq(dry(undefined), true, 'missing stays dry');
+  assertEq(dry('maybe'), true, 'garbage stays dry');
+  assertEq(dry('FALSE'), false, 'FALSE');
+  assertEq(dry(' False '), false, 'padded False');
+  assertEq(dry(false), false, 'checkbox false');
+  assertEq(dry('0'), false, 'zero');
+}
+function test_normalizeConfig_guard_fraction() {
+  assertEq(normalizeConfig_({ dry_run: 'FALSE', delete_guard_fraction: 'x' }).delete_guard_fraction, 0.5, 'bad fraction defaults');
+  assertEq(normalizeConfig_({ dry_run: 'FALSE', delete_guard_fraction: '0.25' }).delete_guard_fraction, 0.25, 'fraction parsed');
+}
+
+function test_findRosterGaps_blank_student_email() {
+  var current = currentFixture_().map(function (r) { var c = {}; for (var k in r) c[k] = r[k]; return c; });
+  current[3].email = '';   // Bo Sample, who has a full roster row
+  var gaps = findRosterGaps(current, rosterFixture_());
+  assertEq(gaps.filter(function (g) { return g.studentId === '2'; }), [{ studentId: '2', student: 'Bo Sample', reason: 'no student email' }], 'blank student email reported');
+}
+
+function test_fixture_header_matches_CSV_HEADERS() {
+  var fixtureFirstLine = 'Student,Grade level,Course,Assignment,Due date,Points possible,Student ID,Student email,Course ID,Assignment ID';
+  assertEq(fixtureFirstLine.split(','), CSV_HEADERS, 'fixtures/missing_assignments_sample.csv header == CSV_HEADERS');
+}
+function test_reconcile_duplicate_key_in_file_kept_once() {
+  var imp = parseImportRows(csvFixture_()).rows;
+  imp.push(imp[0]);
+  var out = reconcile([], imp, '2026-09-09');
+  assertEq(out.rows.length, 3, 'duplicate line counted once');
+  assertEq(out.added, 3, 'added counts unique keys');
+}
+function test_singular_forms() {
+  assertEq(plural_(1, 'missing assignment'), '1 missing assignment', 'singular assignment');
+  assertEq(plural_(2, 'missing assignment'), '2 missing assignments', 'plural assignment');
+  assertEq(ageLabel_({ firstSeen: '2026-09-08' }, '2026-09-09'), 'missing 1 day', 'singular day');
+}
+function test_buildAdvisorDigests_folds_email_case() {
+  var roster = rosterFixture_();
+  roster[1].advisorEmail = 'ADVISER@x.org';
+  var ds = buildAdvisorDigests(currentFixture_(), roster, cfgFixture_(), '2026-09-09');
+  assertEq(ds.length, 1, 'case variants merge');
+  assertEq(ds[0].body.indexOf('Ada Test') > 0 && ds[0].body.indexOf('Bo Sample') > 0, true, 'both advisees present');
+}

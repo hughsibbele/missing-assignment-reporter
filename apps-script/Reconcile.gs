@@ -50,7 +50,7 @@ function reconcile(currentRows, importRows, todayIso) {
     var prev = existing[k];
     var row = {};
     for (var f in imp) row[f] = imp[f];
-    row.firstSeen = prev ? prev.firstSeen : todayIso;
+    row.firstSeen = (prev && prev.firstSeen) ? prev.firstSeen : todayIso;
     row.lastSeen = todayIso;
     rows.push(row);
     if (prev) unchanged++; else added++;

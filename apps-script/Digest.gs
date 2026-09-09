@@ -16,6 +16,7 @@ function fillTemplate(s, todayIso) {
 }
 
 function ageLabel_(item, todayIso) {
+  if (!item.firstSeen) return 'newly listed';
   var d = daysBetween(item.firstSeen, todayIso);
   if (d <= 0) return 'new this week';
   return 'missing ' + d + ' day' + (d === 1 ? '' : 's');
@@ -92,6 +93,7 @@ function findRosterGaps(currentRows, roster) {
     var rr = rosterById[r.studentId];
     if (!rr) gaps.push({ studentId: r.studentId, student: r.student, reason: 'not in Roster' });
     else if (!rr.advisorEmail) gaps.push({ studentId: r.studentId, student: r.student, reason: 'no advisor email' });
+    else if (!r.email) gaps.push({ studentId: r.studentId, student: r.student, reason: 'no student email' });
   });
   return gaps.sort(function (a, b) { return a.student < b.student ? -1 : a.student > b.student ? 1 : 0; });
 }

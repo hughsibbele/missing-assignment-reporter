@@ -34,13 +34,19 @@ function readConfig() {
   var cfg = {};
   CONFIG_DEFAULTS.forEach(function (kv) { cfg[kv[0]] = kv[1]; });
   var sheet = SpreadsheetApp.getActive().getSheetByName(TAB.CONFIG);
-  if (!sheet) return cfg;
+  if (!sheet) return normalizeConfig_(cfg);
   var values = sheet.getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     var k = String(values[i][0] || '').trim();
     if (k) cfg[k] = String(values[i][1] === undefined ? '' : values[i][1]).trim();
   }
-  cfg.dry_run = /^(true|yes|1)$/i.test(cfg.dry_run);
+  return normalizeConfig_(cfg);
+}
+
+// Pure. Anything that is not an explicit "off" keeps dry_run ON.
+function normalizeConfig_(cfg) {
+  var raw = String(cfg.dry_run === undefined || cfg.dry_run === null ? '' : cfg.dry_run).trim();
+  cfg.dry_run = !/^(false|no|0|off)$/i.test(raw);
   cfg.delete_guard_fraction = parseFloat(cfg.delete_guard_fraction);
   if (isNaN(cfg.delete_guard_fraction)) cfg.delete_guard_fraction = 0.5;
   return cfg;

@@ -76,7 +76,7 @@
         if (!res.ok) { fail(new Error(res.message)); return; }
         if (res.needsConfirm) { show(res.message, 'warn'); confirmBox.hidden = false; return; }
         show(res.message);
-        setTimeout(function () { google.script.host.close(); }, 2500);
+        setTimeout(function () { google.script.host.close(); }, 4000);
       }
     </script>
   </body>

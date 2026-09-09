@@ -1,7 +1,7 @@
 // Import.gs — sheet wrapper around Reconcile.gs.
 
 function showImportDialog() {
-  var html = HtmlService.createHtmlOutputFromFile('ImportDialog').setWidth(420).setHeight(240);
+  var html = HtmlService.createHtmlOutputFromFile('ImportDialog').setWidth(420).setHeight(300);
   SpreadsheetApp.getUi().showModalDialog(html, 'Import missing-assignments CSV');
 }
 
@@ -26,6 +26,8 @@ function readCurrentRows_() {
 function writeCurrentRows_(rows) {
   var sheet = getOrCreateSheet_(TAB.CURRENT, CURRENT_HEADERS);
   var last = sheet.getLastRow();
+  var needed = rows.length + 1;
+  if (needed > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), needed - sheet.getMaxRows());
   if (rows.length) {
     var values = rows.map(function (r) {
       var a = currentRowToArray(r);
@@ -64,6 +66,8 @@ function appendRosterStudents_(newStudents) {
     .map(function (s) { return [s.studentId, s.student, '', '']; });
   if (!rows.length) return 0;
   var sheet = getOrCreateSheet_(TAB.ROSTER, ROSTER_HEADERS);
+  var needed = sheet.getLastRow() + rows.length;
+  if (needed > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), needed - sheet.getMaxRows());
   sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, ROSTER_HEADERS.length).setValues(rows);
   return rows.length;
 }
