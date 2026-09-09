@@ -30,13 +30,15 @@ Time: about 20 minutes, once.
    each subject prefixed `[DRY RUN → …]`. Adjust wording in Config and resend until happy.
 
 ## 5. Go live
-1. Import the real export from the dashboard. Answer "Continue" if it warns about removing
-   the fake rows.
+1. Import the real export from the dashboard. It will warn that the file removes the fake rows;
+   click **Continue**.
 2. Delete the three fake rows from Roster. Fill Advisor name and Advisor email for every real
    student (Student ID and name are already there).
 3. **Missing Work → Install Tuesday 7am trigger**.
-4. Set Config → `dry_run` to `FALSE`.
-5. Share the sheet with anyone who should see it (Viewer is enough).
+4. In the Apps Script editor, open **Project Settings** (gear icon) and confirm **Time zone** is
+   `(GMT-05:00) Eastern Time - New York`. The trigger fires between 7:00 and 8:00 in that zone.
+5. Set Config → `dry_run` to `FALSE`.
+6. Share the sheet with anyone who should see it (Viewer is enough).
 
 ## Weekly routine
 - Whenever you want the list refreshed: dashboard → Download missing assignments (CSV) →

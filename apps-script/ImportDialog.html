@@ -8,6 +8,7 @@
       .warn { color: #8a6d00; }
       .err { color: #b00020; }
       button { margin-top: 10px; }
+      #confirmBox button { margin-right: 8px; }
     </style>
   </head>
   <body>
@@ -15,44 +16,65 @@
     <input type="file" id="file" accept=".csv,text/csv">
     <div><button id="go" disabled>Import</button></div>
     <div id="status"></div>
+    <div id="confirmBox" hidden>
+      <button id="yes">Continue</button>
+      <button id="no">Cancel</button>
+    </div>
     <script>
       var fileInput = document.getElementById('file');
       var go = document.getElementById('go');
-      var status = document.getElementById('status');
+      var statusEl = document.getElementById('status');
+      var confirmBox = document.getElementById('confirmBox');
+      var pending = null;   // {text, fileName} held while the delete guard asks for confirmation
+
       fileInput.onchange = function () { go.disabled = !fileInput.files.length; };
 
-      function show(msg, cls) { status.className = cls || ''; status.textContent = msg; }
+      function show(msg, cls) { statusEl.className = cls || ''; statusEl.textContent = msg; }
+
+      function fail(e) {
+        show('Error: ' + (e && e.message ? e.message : e), 'err');
+        confirmBox.hidden = true;
+        go.disabled = false;
+      }
+
+      function send(confirmed) {
+        google.script.run
+          .withSuccessHandler(handleResult)
+          .withFailureHandler(fail)
+          .importCsvText(pending.text, pending.fileName, confirmed);
+      }
 
       go.onclick = function () {
         var f = fileInput.files[0];
         if (!f) return;
         go.disabled = true;
+        confirmBox.hidden = true;
         show('Reading ' + f.name + '…');
         var reader = new FileReader();
+        reader.onerror = function () { fail(new Error('could not read the file')); };
         reader.onload = function () {
-          google.script.run
-            .withSuccessHandler(handleResult)
-            .withFailureHandler(function (e) { show('Error: ' + e.message, 'err'); go.disabled = false; })
-            .importCsvText(reader.result, f.name);
+          pending = { text: reader.result, fileName: f.name };
+          send(false);
         };
         reader.readAsText(f);
       };
 
+      document.getElementById('yes').onclick = function () {
+        confirmBox.hidden = true;
+        show('Importing…');
+        send(true);
+      };
+
+      document.getElementById('no').onclick = function () {
+        confirmBox.hidden = true;
+        pending = null;
+        show('Import cancelled. Nothing was changed.');
+        go.disabled = false;
+      };
+
       function handleResult(res) {
-        if (!res.ok) { show(res.message, 'err'); go.disabled = false; return; }
-        if (res.needsConfirm) {
-          show(res.message, 'warn');
-          if (confirm(res.message + '\n\nContinue?')) {
-            google.script.run
-              .withSuccessHandler(handleResult)
-              .withFailureHandler(function (e) { show('Error: ' + e.message, 'err'); })
-              .confirmImport_(res.token);
-          } else {
-            show('Import cancelled. Nothing was changed.');
-            go.disabled = false;
-          }
-          return;
-        }
+        if (!res.ok) { fail(new Error(res.message)); return; }
+        if (res.needsConfirm) { show(res.message, 'warn'); confirmBox.hidden = false; return; }
         show(res.message);
         setTimeout(function () { google.script.host.close(); }, 2500);
       }
