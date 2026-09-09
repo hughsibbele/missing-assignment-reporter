@@ -1,0 +1,5 @@
+# Real dashboard exports contain student names; never commit them.
+/missing_assignments_*.csv
+/*.csv
+.superpowers/
+.DS_Store
