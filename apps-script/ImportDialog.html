@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <style>
+      body { font: 14px system-ui, sans-serif; margin: 16px; }
+      #status { margin-top: 12px; white-space: pre-wrap; }
+      .warn { color: #8a6d00; }
+      .err { color: #b00020; }
+      button { margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <p>Choose the <b>missing_assignments_*.csv</b> file downloaded from the dashboard.</p>
+    <input type="file" id="file" accept=".csv,text/csv">
+    <div><button id="go" disabled>Import</button></div>
+    <div id="status"></div>
+    <script>
+      var fileInput = document.getElementById('file');
+      var go = document.getElementById('go');
+      var status = document.getElementById('status');
+      fileInput.onchange = function () { go.disabled = !fileInput.files.length; };
+
+      function show(msg, cls) { status.className = cls || ''; status.textContent = msg; }
+
+      go.onclick = function () {
+        var f = fileInput.files[0];
+        if (!f) return;
+        go.disabled = true;
+        show('Reading ' + f.name + '…');
+        var reader = new FileReader();
+        reader.onload = function () {
+          google.script.run
+            .withSuccessHandler(handleResult)
+            .withFailureHandler(function (e) { show('Error: ' + e.message, 'err'); go.disabled = false; })
+            .importCsvText(reader.result, f.name);
+        };
+        reader.readAsText(f);
+      };
+
+      function handleResult(res) {
+        if (!res.ok) { show(res.message, 'err'); go.disabled = false; return; }
+        if (res.needsConfirm) {
+          show(res.message, 'warn');
+          if (confirm(res.message + '\n\nContinue?')) {
+            google.script.run
+              .withSuccessHandler(handleResult)
+              .withFailureHandler(function (e) { show('Error: ' + e.message, 'err'); })
+              .confirmImport_(res.token);
+          } else {
+            show('Import cancelled. Nothing was changed.');
+            go.disabled = false;
+          }
+          return;
+        }
+        show(res.message);
+        setTimeout(function () { google.script.host.close(); }, 2500);
+      }
+    </script>
+  </body>
+</html>
