@@ -174,3 +174,83 @@ function test_currentRow_array_roundtrip() {
   assertEq(arr[CURRENT_HEADERS.indexOf('Due date')], '2026-09-04', 'due date under its header');
   assertEq(arrayToCurrentRow([1, 'Ada Test', 'e', 9, 'c', 'a', '2026-09-04', 10, '2026-09-01', '2026-09-09', 100, 1001]), r, 'header-ordered numeric array maps to the same row');
 }
+
+// --- Digest ----------------------------------------------------------------
+
+function currentFixture_() {
+  var base = { grade: '9', points: '10', lastSeen: '2026-09-09' };
+  function row(o) { var r = {}; for (var k in base) r[k] = base[k]; for (var k2 in o) r[k2] = o[k2]; return r; }
+  return [
+    row({ studentId: '1', student: 'Ada Test', email: 'atest30@x.org', course: 'Algebra I', assignment: 'Homework 5', dueDate: '2026-09-04', courseId: '100', assignmentId: '1001', firstSeen: '2026-09-04' }),
+    row({ studentId: '1', student: 'Ada Test', email: 'atest30@x.org', course: 'Algebra I', assignment: 'Lab Notebook', dueDate: '', courseId: '100', assignmentId: '1003', firstSeen: '2026-09-09' }),
+    row({ studentId: '1', student: 'Ada Test', email: 'atest30@x.org', course: 'Biology', assignment: 'Quiz 1', dueDate: '2026-09-01', courseId: '102', assignmentId: '1010', firstSeen: '2026-09-02' }),
+    row({ studentId: '2', student: 'Bo Sample', email: 'bsample30@x.org', course: 'Biology', assignment: 'Quiz 3', dueDate: '2026-09-02', courseId: '102', assignmentId: '1002', firstSeen: '2026-09-03' }),
+    row({ studentId: '3', student: 'Cy Fixture', email: 'cfixture30@x.org', course: 'Civics', assignment: 'HW 1', dueDate: '2026-09-08', courseId: '103', assignmentId: '1020', firstSeen: '2026-09-09' })
+  ];
+}
+
+function rosterFixture_() {
+  return [
+    { studentId: '1', student: 'Ada Test', advisorName: 'Ms. Adviser', advisorEmail: 'adviser@x.org' },
+    { studentId: '2', student: 'Bo Sample', advisorName: 'Ms. Adviser', advisorEmail: 'adviser@x.org' },
+    { studentId: '3', student: 'Cy Fixture', advisorName: 'Mr. Blank', advisorEmail: '' }
+  ];
+}
+
+function cfgFixture_() {
+  var cfg = {}; CONFIG_DEFAULTS.forEach(function (kv) { cfg[kv[0]] = kv[1]; });
+  cfg.dry_run = false; cfg.delete_guard_fraction = 0.5;
+  return cfg;
+}
+
+function test_fillTemplate() {
+  assertEq(fillTemplate('Missing work as of {date}', '2026-09-09'), 'Missing work as of Sep 9, 2026', 'date filled');
+}
+
+function test_renderItems_groups_by_course() {
+  var items = currentFixture_().filter(function (r) { return r.studentId === '1'; });
+  var text = renderItems(items, '2026-09-09');
+  assertEq(text, [
+    'Algebra I:',
+    '  - Homework 5 — due Sep 4 — missing 5 days',
+    '  - Lab Notebook — no due date — new this week',
+    'Biology:',
+    '  - Quiz 1 — due Sep 1 — missing 7 days'
+  ].join('\n'), 'grouped text');
+}
+
+function test_buildStudentDigest() {
+  var items = currentFixture_().filter(function (r) { return r.studentId === '1'; });
+  var d = buildStudentDigest(items, cfgFixture_(), '2026-09-09');
+  assertEq(d.to, 'atest30@x.org', 'to student email');
+  assertEq(d.subject, 'Missing work as of Sep 9, 2026', 'subject');
+  assertEq(d.body.indexOf('Hi Ada Test,') === 0, true, 'greets by name');
+  assertEq(d.body.indexOf(CONFIG_DEFAULTS[3][1]) > 0, true, 'intro included');
+  assertEq(d.body.indexOf('Algebra I:') > 0, true, 'items included');
+  assertEq(d.body.indexOf('3 missing assignments') > 0, true, 'count line');
+}
+
+function test_buildAdvisorDigests() {
+  var ds = buildAdvisorDigests(currentFixture_(), rosterFixture_(), cfgFixture_(), '2026-09-09');
+  assertEq(ds.length, 1, 'only advisors with email');
+  assertEq(ds[0].to, 'adviser@x.org', 'advisor email');
+  assertEq(ds[0].subject, "Advisees' missing work as of Sep 9, 2026", 'subject');
+  assertEq(ds[0].body.indexOf('Ada Test (3 missing)') > 0, true, 'advisee header with count');
+  assertEq(ds[0].body.indexOf('Bo Sample (1 missing)') > 0, true, 'second advisee');
+  assertEq(ds[0].body.indexOf('Ada Test') < ds[0].body.indexOf('Bo Sample'), true, 'advisees alphabetical');
+}
+
+function test_buildAdvisorDigests_skips_advisors_with_no_current_items() {
+  var roster = rosterFixture_().concat([{ studentId: '9', student: 'Nobody Here', advisorName: 'Dr. Quiet', advisorEmail: 'quiet@x.org' }]);
+  var ds = buildAdvisorDigests(currentFixture_(), roster, cfgFixture_(), '2026-09-09');
+  assertEq(ds.map(function (d) { return d.to; }), ['adviser@x.org'], 'quiet advisor gets nothing');
+}
+
+function test_findRosterGaps() {
+  var current = currentFixture_().concat([{ studentId: '4', student: 'Di Orphan', email: 'd@x.org', course: 'Art', assignment: 'Sketch', dueDate: '', firstSeen: '2026-09-09', lastSeen: '2026-09-09', courseId: '104', assignmentId: '1030', grade: '9', points: '1' }]);
+  var gaps = findRosterGaps(current, rosterFixture_());
+  assertEq(gaps, [
+    { studentId: '3', student: 'Cy Fixture', reason: 'no advisor email' },
+    { studentId: '4', student: 'Di Orphan', reason: 'not in Roster' }
+  ], 'gaps found once per student, sorted by name');
+}
