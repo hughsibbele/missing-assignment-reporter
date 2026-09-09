@@ -1,0 +1,6 @@
+Student,Grade level,Course,Assignment,Due date,Points possible,Student ID,Student email,Course ID,Assignment ID
+Ada Test,9,Algebra I,Homework 5,"Sep 4, 2026",10,1,atest30@episcopalhighschool.org,100,1001
+Ada Test,9,Algebra I,Lab Notebook,,5,1,atest30@episcopalhighschool.org,100,1003
+Ada Test,9,Biology,Quiz 1,"Sep 1, 2026",20,1,atest30@episcopalhighschool.org,102,1010
+Bo Sample,9,Biology,Quiz 3,"Sep 2, 2026",,2,bsample30@episcopalhighschool.org,102,1002
+Cy Fixture,9,21st Century Civics,HW 1.5,"Sep 8, 2026",2,3,cfixture30@episcopalhighschool.org,103,1020
