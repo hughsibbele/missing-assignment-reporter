@@ -75,7 +75,7 @@ function sortCurrentRows(rows) {
 }
 
 var CURRENT_FIELDS_ = ['studentId', 'student', 'email', 'grade', 'course', 'assignment',
-  'dueDate', 'points', 'courseId', 'assignmentId', 'firstSeen', 'lastSeen'];
+  'dueDate', 'points', 'firstSeen', 'lastSeen', 'courseId', 'assignmentId'];
 
 function currentRowToArray(r) {
   return CURRENT_FIELDS_.map(function (f) { return str_(r[f]); });

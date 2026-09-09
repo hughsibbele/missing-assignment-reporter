@@ -162,10 +162,15 @@ function test_sortCurrentRows() {
 
 function test_currentRow_array_roundtrip() {
   var r = { studentId: '1', student: 'Ada Test', email: 'e', grade: '9', course: 'c', assignment: 'a',
-    dueDate: '2026-09-04', points: '10', courseId: '100', assignmentId: '1001', firstSeen: '2026-09-01', lastSeen: '2026-09-09' };
+    dueDate: '2026-09-04', points: '10', firstSeen: '2026-09-01', lastSeen: '2026-09-09', courseId: '100', assignmentId: '1001' };
   var arr = currentRowToArray(r);
   assertEq(arr.length, CURRENT_HEADERS.length, 'one cell per header');
   assertEq(arr[0], '1', 'student id first');
   assertEq(arrayToCurrentRow(arr), r, 'roundtrip');
-  assertEq(arrayToCurrentRow([1, 'Ada Test', 'e', 9, 'c', 'a', '2026-09-04', 10, '2026-09-01', '2026-09-09', 100, 1001]).studentId, '1', 'numbers become strings');
+  assertEq(arr[CURRENT_HEADERS.indexOf('First seen')], '2026-09-01', 'first seen under its header');
+  assertEq(arr[CURRENT_HEADERS.indexOf('Last seen')], '2026-09-09', 'last seen under its header');
+  assertEq(arr[CURRENT_HEADERS.indexOf('Course ID')], '100', 'course id under its header');
+  assertEq(arr[CURRENT_HEADERS.indexOf('Assignment ID')], '1001', 'assignment id under its header');
+  assertEq(arr[CURRENT_HEADERS.indexOf('Due date')], '2026-09-04', 'due date under its header');
+  assertEq(arrayToCurrentRow([1, 'Ada Test', 'e', 9, 'c', 'a', '2026-09-04', 10, '2026-09-01', '2026-09-09', 100, 1001]), r, 'header-ordered numeric array maps to the same row');
 }
