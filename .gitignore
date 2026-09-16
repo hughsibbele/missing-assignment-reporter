@@ -3,3 +3,6 @@
 /*.csv
 .superpowers/
 .DS_Store
+
+# clasp link to one person's copy of the sheet; not shared.
+apps-script/.clasp.json
