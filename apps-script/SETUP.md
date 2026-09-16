@@ -32,8 +32,9 @@ Time: about 20 minutes, once.
 ## 5. Go live
 1. Import the real export from the dashboard. It will warn that the file removes the fake rows;
    click **Continue**.
-2. Delete the three fake rows from Roster. Fill Advisor name and Advisor email for every real
-   student (Student ID and name are already there).
+2. Delete the three fake rows from Roster. If the sheet has an **Advisors** tab (see below), each
+   import fills in advisors for new Roster rows; otherwise fill Advisor name and Advisor email by
+   hand (Student ID and name are already there).
 3. **Missing Work → Install Tuesday 7am trigger**.
    Only one person should install the trigger. If someone else installs it too, students get two emails.
 4. Confirm the time zone in two places: in the Apps Script editor, open **Project Settings** (gear
@@ -68,6 +69,10 @@ Time: about 20 minutes, once.
   and `cc` to copy someone on every live email.
 - To pause emails, set `dry_run` back to `TRUE`; the trigger keeps running but everything
   goes to you.
+- The **Advisors** tab is an optional lookup for the whole school: Student ID, Student (can be
+  blank), Advisor name, Advisor email. Nobody is emailed from it. When an import adds a student
+  to Roster, their advisor is copied from here. Editing it does not change rows already in Roster.
+  For co-advisors, put both emails in one cell separated by a comma.
 - Don't type in the Current tab; every import rewrites it, and you'll see a warning if you try.
 - Any conditional formatting you add to Current is reset on import.
 - Also check the spreadsheet's own time zone (File → Settings → Time zone) matches Eastern, or

@@ -1,6 +1,6 @@
 // Config.gs — names, headers, defaults. Pure constants plus readConfig().
 
-var TAB = { CURRENT: 'Current', ROSTER: 'Roster', CONFIG: 'Config', LOG: 'Log' };
+var TAB = { CURRENT: 'Current', ROSTER: 'Roster', CONFIG: 'Config', LOG: 'Log', ADVISORS: 'Advisors' };
 
 // Must match the dashboard's /export/missing.csv exactly.
 var CSV_HEADERS = [

@@ -128,7 +128,6 @@ function test_reconcile_adds_updates_removes() {
   assertEq(byKey['1|1001'].lastSeen, '2026-09-09', 'survivor updates last seen');
   assertEq(byKey['1|1003'].firstSeen, '2026-09-09', 'new row first seen today');
   assertEq(byKey['1|999'], undefined, 'absent row removed');
-  assertEq(out.newStudents, [{ studentId: '2', student: 'Bo Sample' }], 'new student reported once');
 }
 
 function test_reconcile_survivor_takes_fresh_display_fields() {
@@ -143,10 +142,30 @@ function test_reconcile_survivor_takes_fresh_display_fields() {
   assertEq(row.email, 'atest30@episcopalhighschool.org', 'email refreshed');
 }
 
-function test_reconcile_newStudents_excludes_known() {
-  var imp = parseImportRows(csvFixture_()).rows;
-  var out = reconcile([], imp, '2026-09-09');
-  assertEq(out.newStudents, [{ studentId: '1', student: 'Ada Test' }, { studentId: '2', student: 'Bo Sample' }], 'both new on empty sheet');
+function test_newRosterRows_copies_advisor_when_known() {
+  var imp = parseImportRows(csvFixture_()).rows;   // Ada Test (ID 1) on two rows, Bo Sample (ID 2)
+  var advisors = { '1': { advisorName: 'Ms. Adviser', advisorEmail: 'adviser@x.org' } };
+  assertEq(newRosterRows(imp, [], advisors), [
+    ['1', 'Ada Test', 'Ms. Adviser', 'adviser@x.org'],
+    ['2', 'Bo Sample', '', '']
+  ], 'one row per student, advisor copied when listed');
+  assertEq(newRosterRows(imp, [{ studentId: '1', student: 'Ada Test', advisorName: '', advisorEmail: '' }], advisors),
+    [['2', 'Bo Sample', '', '']], 'students already in Roster are left alone');
+  assertEq(newRosterRows(imp, [], {}), [['1', 'Ada Test', '', ''], ['2', 'Bo Sample', '', '']], 'no Advisors tab: blank advisor cells');
+}
+
+function test_advisorsFromValues() {
+  var values = [
+    ROSTER_HEADERS.slice(),
+    [6927, '', 'Ann Alpha', 'aalpha@x.org'],
+    ['', '', 'Orphan', 'orphan@x.org'],
+    [' 7001 ', '', 'Dan Ellington & Eve Vorlicek', 'dellington@x.org, evorlicek@x.org']
+  ];
+  assertEq(advisorsFromValues(values), {
+    '6927': { advisorName: 'Ann Alpha', advisorEmail: 'aalpha@x.org' },
+    '7001': { advisorName: 'Dan Ellington & Eve Vorlicek', advisorEmail: 'dellington@x.org, evorlicek@x.org' }
+  }, 'numeric IDs become strings; blank IDs skipped; header skipped');
+  assertEq(advisorsFromValues([]), {}, 'empty tab');
 }
 
 function test_sortCurrentRows() {

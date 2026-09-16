@@ -39,10 +39,8 @@ function rowKey(r) { return r.studentId + '|' + r.assignmentId; }
 function reconcile(currentRows, importRows, todayIso) {
   var existing = {};
   currentRows.forEach(function (r) { existing[rowKey(r)] = r; });
-  var knownStudents = {};
-  currentRows.forEach(function (r) { knownStudents[r.studentId] = true; });
 
-  var rows = [], added = 0, unchanged = 0, seen = {}, newStudents = [], newSeen = {};
+  var rows = [], added = 0, unchanged = 0, seen = {};
   importRows.forEach(function (imp) {
     var k = rowKey(imp);
     if (seen[k]) return;   // duplicate line in the file
@@ -54,14 +52,35 @@ function reconcile(currentRows, importRows, todayIso) {
     row.lastSeen = todayIso;
     rows.push(row);
     if (prev) unchanged++; else added++;
-    if (!knownStudents[imp.studentId] && !newSeen[imp.studentId]) {
-      newSeen[imp.studentId] = true;
-      newStudents.push({ studentId: imp.studentId, student: imp.student });
-    }
   });
   var removed = 0;
   currentRows.forEach(function (r) { if (!seen[rowKey(r)]) removed++; });
-  return { rows: sortCurrentRows(rows), added: added, removed: removed, unchanged: unchanged, newStudents: newStudents };
+  return { rows: sortCurrentRows(rows), added: added, removed: removed, unchanged: unchanged };
+}
+
+// Roster rows to append: one per imported student not already in Roster, with the
+// advisor copied from advisorsById (the Advisors tab) when it lists the student.
+function newRosterRows(importRows, roster, advisorsById) {
+  var known = {};
+  roster.forEach(function (r) { known[r.studentId] = true; });
+  var rows = [];
+  importRows.forEach(function (imp) {
+    if (known[imp.studentId]) return;
+    known[imp.studentId] = true;
+    var a = advisorsById[imp.studentId] || {};
+    rows.push([imp.studentId, imp.student, a.advisorName || '', a.advisorEmail || '']);
+  });
+  return rows;
+}
+
+// Advisors tab values (header row first, same columns as Roster) -> {studentId: {advisorName, advisorEmail}}.
+function advisorsFromValues(values) {
+  var out = {};
+  for (var i = 1; i < values.length; i++) {
+    var id = str_(values[i][0]);
+    if (id) out[id] = { advisorName: str_(values[i][2]), advisorEmail: str_(values[i][3]) };
+  }
+  return out;
 }
 
 function sortCurrentRows(rows) {

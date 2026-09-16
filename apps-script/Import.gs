@@ -56,20 +56,24 @@ function readRoster_() {
     });
 }
 
-// Adds Student ID + name rows for students not yet in Roster; advisor cells blank.
-function appendRosterStudents_(newStudents) {
-  if (!newStudents.length) return 0;
-  var known = {};
-  readRoster_().forEach(function (r) { known[r.studentId] = true; });
-  var rows = newStudents
-    .filter(function (s) { return !known[s.studentId]; })
-    .map(function (s) { return [s.studentId, s.student, '', '']; });
-  if (!rows.length) return 0;
+// Optional Advisors tab: every student in the school with their advisor, in Roster's
+// columns (the Student column may be blank). Never emailed from directly.
+function readAdvisors_() {
+  var sheet = SpreadsheetApp.getActive().getSheetByName(TAB.ADVISORS);
+  if (!sheet || sheet.getLastRow() < 2) return {};
+  return advisorsFromValues(sheet.getRange(1, 1, sheet.getLastRow(), ROSTER_HEADERS.length).getValues());
+}
+
+// Adds a Roster row for each student in the import who is not in Roster yet, with the
+// advisor filled from the Advisors tab when it lists them. Returns {added, needAdvisor}.
+function appendRosterStudents_(importRows) {
+  var rows = newRosterRows(importRows, readRoster_(), readAdvisors_());
+  if (!rows.length) return { added: 0, needAdvisor: 0 };
   var sheet = getOrCreateSheet_(TAB.ROSTER, ROSTER_HEADERS);
   var needed = sheet.getLastRow() + rows.length;
   if (needed > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), needed - sheet.getMaxRows());
   sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, ROSTER_HEADERS.length).setValues(rows);
-  return rows.length;
+  return { added: rows.length, needAdvisor: rows.filter(function (r) { return !r[3]; }).length };
 }
 
 // Called from the dialog. confirmed=true bypasses the delete guard.
@@ -101,22 +105,23 @@ function applyImport_(importRows, skipped, fileName) {
     var current = readCurrentRows_();
     var result = reconcile(current, importRows, todayIso());
     writeCurrentRows_(result.rows);
-    var rosterAdded = 0, postError = '';
+    var roster = { added: 0, needAdvisor: 0 }, postError = '';
     try {
-      rosterAdded = appendRosterStudents_(result.newStudents);
+      roster = appendRosterStudents_(importRows);
       highlightRosterGaps_();
     } catch (e) {
       postError = 'Roster/highlight step failed: ' + e.message;
     }
     var notes = fileName +
       (skipped ? '; skipped ' + skipped + ' rows with blank IDs' : '') +
-      (rosterAdded ? '; added ' + rosterAdded + ' students to Roster' : '') +
+      (roster.added ? '; added ' + roster.added + ' students to Roster (' + roster.needAdvisor + ' without advisor)' : '') +
       (postError ? '; ' + postError : '');
     logEvent('import', { added: result.added, removed: result.removed, unchanged: result.unchanged }, notes);
     return {
       ok: true,
       message: 'Imported. Added ' + result.added + ', removed ' + result.removed + ', unchanged ' + result.unchanged + '.' +
-        (rosterAdded ? '\n' + rosterAdded + ' new student(s) added to Roster — fill in their advisor.' : '') +
+        (roster.added ? '\n' + roster.added + ' student(s) added to Roster' +
+          (roster.needAdvisor ? '; ' + roster.needAdvisor + ' need an advisor filled in.' : ', advisors filled from the Advisors tab.') : '') +
         (skipped ? '\nSkipped ' + skipped + ' row(s) with blank IDs.' : '') +
         (postError ? '\nWarning: ' + postError : '')
     };
